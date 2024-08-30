@@ -150,7 +150,7 @@ fun ResetPassword(
                                     if (success) {
                                         Toast.makeText(
                                             navController.context,
-                                            "Reset password link has been sent to your email.",
+                                            "Reset link has been sent.",
                                             Toast.LENGTH_LONG
                                         ).show()
                                         navController.navigate("login") {

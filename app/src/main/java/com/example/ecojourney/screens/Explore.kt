@@ -75,6 +75,19 @@ fun Explore(navController: NavHostController) {
             )
 
             Spacer(modifier = Modifier.height(60.dp))
+
+            Spacer(modifier = Modifier.weight(1f))
+            Text(
+                text = "Coming Soon...",
+                style = TextStyle(
+                    color = Color.Gray,
+                    fontSize = 24.sp,
+                    fontFamily = PJakartaFontFamily,
+                    fontWeight = FontWeight.Bold
+                ),
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+            )
+            Spacer(modifier = Modifier.weight(1f))
         }
     }
 

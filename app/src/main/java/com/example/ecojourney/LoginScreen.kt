@@ -1,5 +1,7 @@
 package com.example.ecojourney
 
+import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -8,11 +10,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -35,12 +35,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
-import androidx.compose.material3.Button
 import com.google.firebase.auth.FirebaseAuth
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import com.example.ecojourney.ui.theme.PJakartaFontFamily
 import com.example.ecojourney.ui.theme.PJakartaSansFontFamily
@@ -55,29 +54,55 @@ fun loginUser(
     val auth = FirebaseAuth.getInstance()
     val firestore = FirebaseFirestore.getInstance()
 
-    auth.signInWithEmailAndPassword(email, password).addOnCompleteListener { task ->
-        if (task.isSuccessful) {
-            val userId = auth.currentUser?.uid ?: ""
-            firestore.collection("users").document(userId)
-                .get()
-                .addOnSuccessListener { document ->
-                    if (document.exists()) {
-                        onLoginResult(true, null)
-                        // Navigate to MainScreen if login is successful
-                        navController.navigate("main") {
-                            popUpTo("login") { inclusive = true }
+    // Cek apakah email sudah terdaftar di Firebase
+    firestore.collection("users")
+        .whereEqualTo("email", email)
+        .get()
+        .addOnCompleteListener { task ->
+            if (task.isSuccessful) {
+                val documents = task.result
+                if (documents != null && !documents.isEmpty) {
+                    Log.d("Login", "Email ditemukan di Firestore")
+                    // Email ditemukan, lanjutkan dengan proses login
+                    auth.signInWithEmailAndPassword(email, password).addOnCompleteListener { loginTask ->
+                        if (loginTask.isSuccessful) {
+                            Log.d("Login", "Autentikasi berhasil")
+                            val userId = auth.currentUser?.uid ?: ""
+                            firestore.collection("users").document(userId)
+                                .get()
+                                .addOnSuccessListener { document ->
+                                    if (document.exists()) {
+                                        Log.d("Login", "Data pengguna ditemukan di Firestore")
+                                        onLoginResult(true, null)
+                                        // Navigate to MainScreen if login is successful
+                                        navController.navigate("main") {
+                                            popUpTo("login") { inclusive = true }
+                                        }
+                                    } else {
+                                        Log.d("Login", "Data pengguna tidak ditemukan")
+                                        onLoginResult(false, "User data not found")
+                                    }
+                                }
+                                .addOnFailureListener { e ->
+                                    Log.d("Login", "Gagal mengambil data pengguna: ${e.message}")
+                                    onLoginResult(false, "Failed to fetch user data: ${e.message}")
+                                }
+                        } else {
+                            Log.d("Login", "Autentikasi gagal: ${loginTask.exception?.message}")
+                            onLoginResult(false, loginTask.exception?.message ?: "Login failed")
                         }
-                    } else {
-                        onLoginResult(false, "User data not found")
                     }
+                } else {
+                    Log.d("Login", "Email tidak ditemukan")
+                    // Email tidak ditemukan, tolak login
+                    onLoginResult(false, "Email tidak terdaftar.")
                 }
-                .addOnFailureListener { e ->
-                    onLoginResult(false, "Failed to fetch user data: ${e.message}")
-                }
-        } else {
-            onLoginResult(false, task.exception?.message ?: "Login failed")
+            } else {
+                Log.d("Login", "Gagal memeriksa email ${task.exception?.message}")
+                // Gagal memeriksa email di Firebase
+                onLoginResult(false, "Failed to check email: ${task.exception?.message}")
+            }
         }
-    }
 }
 
 @Composable
@@ -86,6 +111,7 @@ fun LoginScreen(
     onLoginResult: (Boolean, String?) -> Unit,
     onGoogleSignInClick: () -> Unit
 ) {
+    val context = LocalContext.current
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
@@ -93,6 +119,13 @@ fun LoginScreen(
 
     // Check if email and password fields are not empty
     val isLoginButtonEnabled = email.isNotEmpty() && password.isNotEmpty()
+
+    // Menampilkan toast jika terjadi kesalahan login
+    LaunchedEffect(errorMessage) {
+        errorMessage?.let {
+            Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+        }
+    }
 
     Surface(
         color = Color(0xFF3F6B1B),
@@ -189,7 +222,6 @@ fun LoginScreen(
                         onClick = {
                             coroutineScope.launch {
                                 loginUser(email, password, navController, onLoginResult)
-                                navController.navigate("main")
                             }
                         }
                     )
@@ -217,18 +249,10 @@ fun LoginScreen(
                     text = "Masuk dengan Facebook",
                     onClick = {
                         // Handle login with Facebook
+                        Toast.makeText(context, "Maaf bro fitur ini belum selesai", Toast.LENGTH_SHORT).show()
                     },
                     iconResId = R.drawable.fcb_ic
                 )
-
-                errorMessage?.let {
-                    Text(
-                        text = it,
-                        color = Color.Red,
-                        style = TextStyle(fontSize = 14.sp),
-                        modifier = Modifier.padding(top = 8.dp)
-                    )
-                }
 
                 Spacer(modifier = Modifier.height(20.dp))
 

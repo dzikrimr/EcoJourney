@@ -214,6 +214,7 @@ fun Home(navController: NavHostController, context: Context) {
                 progress = updatedCarbonFootprint
                 SharedPrefsHelper.setProgress(context, progress)
 
+
                 // Update the UI text
                 carbonResultText = buildAnnotatedString {
                     if (progress > 0) {

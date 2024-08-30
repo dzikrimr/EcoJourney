@@ -38,7 +38,7 @@ import com.example.ecojourney.ui.theme.PJakartaFontFamily
 import com.example.ecojourney.ui.theme.PJakartaSansFontFamily
 
 @Composable
-fun MainScreen(selectedItem: MutableState<Int>, navController: NavHostController, context: Context) {
+fun MainScreen(selectedItem: MutableState<Int>, navController: NavHostController, context: Context, userId: String) {
     val selectedItem = rememberSaveable { mutableStateOf(0) }
 
     Column(
@@ -151,7 +151,7 @@ fun MainScreen(selectedItem: MutableState<Int>, navController: NavHostController
         0 -> Home(context = context, navController = navController)
         1 -> Explore(navController = navController)
         2 -> Donate(navController = navController)
-        3 -> Profile(navController = navController, userId = "")
+        3 -> Profile(navController = navController, userId = userId)
     }
 }
 
@@ -165,7 +165,8 @@ fun MainScreenPreview() {
     MainScreen(
         selectedItem = selectedItem,
         navController = navController,
-        context = context
+        context = context,
+        userId = "Test"
     )
 }
 

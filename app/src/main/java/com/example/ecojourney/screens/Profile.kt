@@ -1,5 +1,6 @@
 package com.example.ecojourney.screens
 
+import android.content.Context
 import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -12,6 +13,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
@@ -22,10 +24,12 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import com.example.ecojourney.R
 import com.example.ecojourney.ui.theme.PJakartaFontFamily
 import androidx.navigation.compose.rememberNavController
+import com.example.ecojourney.SharedPrefsHelper
 import com.example.ecojourney.progressbar.StickProgressBar
 import com.example.ecojourney.ui.theme.PJakartaSansFontFamily
 import com.google.firebase.auth.FirebaseAuth
@@ -33,6 +37,8 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun Profile(navController: NavHostController, userId: String) {
+
+    val context = LocalContext.current
     // State variables to hold user data
     var userName by remember { mutableStateOf("Nama User") }
     var userEmail by remember { mutableStateOf("example@gmail.com") }
@@ -101,10 +107,16 @@ fun Profile(navController: NavHostController, userId: String) {
         R.drawable.arrow_green
     )
 
-    fun handleLogout() {
+    fun handleLogout(context: Context, navController: NavHostController) {
         coroutineScope.launch {
             try {
+                // Clear SharedPreferences
+                val sharedPrefs = SharedPrefsHelper.getSharedPreferences(context)
+                sharedPrefs.edit().clear().apply()
+
+                // Perform Firebase logout
                 FirebaseAuth.getInstance().signOut()
+
                 // Navigate to login screen and clear back stack
                 navController.navigate("login") {
                     // Clear back stack to prevent back navigation to the profile screen
@@ -115,6 +127,7 @@ fun Profile(navController: NavHostController, userId: String) {
             }
         }
     }
+
 
     Box(modifier = Modifier.fillMaxSize()) {
         Image(
@@ -192,7 +205,7 @@ fun Profile(navController: NavHostController, userId: String) {
                                         .width(200.dp)
                                         .height(22.dp),
                                     currentValue = it,
-                                    maxValue = 26f,
+                                    maxValue = 780f,
                                     width = 200.dp
                                 )
                             }
@@ -207,7 +220,7 @@ fun Profile(navController: NavHostController, userId: String) {
                                             append("${"%.2f".format(it)}/ ")
                                         }
                                         withStyle(style = SpanStyle(color = Color(0xFF3F6B1B))) {
-                                            append("26 kg")
+                                            append("780 kg")
                                         }
                                         withStyle(style = SpanStyle(color = Color.Black)) {
                                             append(" bulan ini!")
@@ -221,7 +234,10 @@ fun Profile(navController: NavHostController, userId: String) {
                                         letterSpacing = 0.25.sp,
                                         textAlign = TextAlign.Center,
                                     ),
-                                    modifier = Modifier.padding(top = 16.dp)
+                                    modifier = Modifier
+                                        .padding(horizontal = 30.dp) // Padding kiri dan kanan
+                                        .padding(top = 16.dp) // Padding atas
+                                        .padding(bottom = 12.dp) // Padding bawah (ditambahkan)
                                 )
                             }
                         }
@@ -300,11 +316,11 @@ fun Profile(navController: NavHostController, userId: String) {
                             .padding(vertical = 6.dp)
                             .clickable {
                                 when (index) {
-                                    0 -> navController.navigate("setting")
+                                    0 -> navController.navigate("settings")
                                     1 -> navController.navigate("security")
                                     2 -> navController.navigate("about")
                                     3 -> {
-                                        handleLogout() // Call the logout function
+                                        handleLogout(context, navController) // Call the logout function
                                     }
                                 }
                             },
@@ -401,4 +417,3 @@ fun ProfilePreview() {
     val navController = rememberNavController() // Create a mock NavController for the preview
     Profile(navController, userId = "")
 }
-

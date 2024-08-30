@@ -102,6 +102,8 @@ class MainActivity : ComponentActivity() {
     fun NavigationView(navController: NavHostController) {
         val context = LocalContext.current
         val selectedItem = remember { mutableStateOf(0) }
+        val auth = FirebaseAuth.getInstance()
+        val userId = auth.currentUser?.uid ?: "defaultUserId" // Get the userId from FirebaseAuth
 
         NavHost(navController = navController, startDestination = "onboarding") {
             composable("onboarding") { OnboardingScreen(navController) { /* Handle finish action if needed */ } }
@@ -124,7 +126,8 @@ class MainActivity : ComponentActivity() {
                 MainScreen(
                     selectedItem = selectedItem,
                     navController = navController,
-                    context = context
+                    context = context,
+                    userId = userId // Pass the userId here
                 )
             }
             composable("homeDetail/{userId}") { backStackEntry ->
@@ -140,6 +143,7 @@ class MainActivity : ComponentActivity() {
             composable("profile_detail") { ProfileDetail(navController) }
         }
     }
+
 
     private fun startGoogleSignIn() {
         val signInIntent = googleSignInClient.signInIntent
