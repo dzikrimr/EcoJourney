@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "456326492640",
+    "project_id": "ecojourney-77a67",
+    "storage_bucket": "ecojourney-77a67.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:456326492640:android:1cb1ec255d35e8cefe3b85",
+        "android_client_info": {
+          "package_name": "com.example.ecojourney"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "456326492640-de6ut1i5b7tgulb3sopsr5qshh1ukmva.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.ecojourney",
+            "certificate_hash": "e9d5e74cd116aa566e9148d307a977b2f36131fe"
+          }
+        },
+        {
+          "client_id": "456326492640-rngm3t07u10krg780cnks762mvhl83h5.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBHNhxZe70k5kRPwaFRKe1hnrgpMywnyd0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "456326492640-rngm3t07u10krg780cnks762mvhl83h5.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
