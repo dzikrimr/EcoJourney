@@ -57,7 +57,6 @@ fun calculateCarbonFootprint(
         "Motor" -> 0.1f // Example emission factor
         "Mobil" -> 0.2f
         "Truk" -> 0.3f
-        "Bus" -> 0.4f
         else -> 0.0f
     }
 
@@ -129,7 +128,7 @@ fun getUserName(onResult: (String) -> Unit) {
 @Composable
 fun Home(navController: NavHostController, context: Context) {
     val userName = remember { mutableStateOf("") }
-    val spinnerItems = listOf("Motor", "Mobil", "Truk", "Bus")
+    val spinnerItems = listOf("Motor", "Mobil", "Truk")
     var selectedItem by remember { mutableStateOf("") }
 
     var jarakTempuh by remember { mutableStateOf("") }
@@ -315,16 +314,16 @@ fun Home(navController: NavHostController, context: Context) {
                 ),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 80.dp)
+                    .padding(top = 70.dp)
             )
 
-            Spacer(modifier = Modifier.height(22.dp)) // Jarak antara ImageSlider dan Card
+            Spacer(modifier = Modifier.height(15.dp)) // Jarak antara ImageSlider dan Card
 
             // Menambahkan Card di bawah ImageSlider
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(415.dp), // Menentukan tinggi Card
+                    .height(400.dp), // Menentukan tinggi Card
                 shape = RoundedCornerShape(10.dp),
                 elevation = CardDefaults.cardElevation(4.dp),
                 colors = CardDefaults.cardColors(
@@ -350,7 +349,7 @@ fun Home(navController: NavHostController, context: Context) {
                         letterSpacing = 0.5.sp
                     )
 
-                    Spacer(modifier = Modifier.height(26.dp))
+                    Spacer(modifier = Modifier.height(15.dp))
 
                     Box(
                         modifier = Modifier
@@ -400,7 +399,7 @@ fun Home(navController: NavHostController, context: Context) {
                             .padding(horizontal = 50.dp)
                     )
 
-                    Spacer(modifier = Modifier.height(20.dp))
+                    Spacer(modifier = Modifier.height(15.dp))
 
                     Row(
                         modifier = Modifier
@@ -450,7 +449,7 @@ fun Home(navController: NavHostController, context: Context) {
                     Button(
                         onClick = { onCalculateCarbon(userId) }, // Use the new logic
                         enabled = !isInputEmpty,
-                        shape = RoundedCornerShape(40.dp),
+                        shape = RoundedCornerShape(35.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = if (isInputEmpty) Color(0xFFA5A5A5) else Color(0xFF3F6B1B)
                         ),

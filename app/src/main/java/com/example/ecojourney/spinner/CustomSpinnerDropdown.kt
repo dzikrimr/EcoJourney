@@ -191,7 +191,7 @@ fun CustomTextField(
 
 @Composable
 fun ExampleScreen() {
-    val items = listOf("Motor", "Mobil", "Truk", "Bus")
+    val items = listOf("Motor", "Mobil", "Truk")
     var selectedItem by remember { mutableStateOf(items.first()) }
     var textFieldValue by remember { mutableStateOf("") }
 

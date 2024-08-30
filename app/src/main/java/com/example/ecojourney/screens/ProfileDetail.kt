@@ -144,7 +144,7 @@ fun ProfileDetail(navController: NavHostController) {
                     )
                 )
 
-                Spacer(modifier = Modifier.height(40.dp))
+                Spacer(modifier = Modifier.height(50.dp))
 
                 // Circular Image before text fields
                 Box(
