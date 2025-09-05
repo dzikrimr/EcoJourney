@@ -1,8 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <style name="Theme.EcoJourney.Splash" parent="Theme.SplashScreen">
+        <item name ="windowSplashScreenBackground">#FFFFFF</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ecojourney_ic</item>
+        <item name="postSplashScreenTheme">@style/Theme.EcoJourney</item>
+    </style>
 
-    <style name="Theme.EcoJourney" parent="android:Theme.Material.Light.NoActionBar" >
-    <item name="android:statusBarColor">@android:color/white</item>
-    <item name="android:windowLightStatusBar">true</item>
+    <style name="Theme.EcoJourney" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:statusBarColor">@android:color/white</item>
+        <item name="android:navigationBarColor">@android:color/white</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
+        <item name="android:forceDarkAllowed">false</item>
     </style>
 </resources>

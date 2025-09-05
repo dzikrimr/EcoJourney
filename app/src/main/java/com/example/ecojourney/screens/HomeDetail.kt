@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -39,10 +40,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
@@ -51,13 +54,17 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import com.example.ecojourney.R
-import com.example.ecojourney.progressbar.StickProgressBar
+import com.example.ecojourney.ui.ClickableTabs
+import com.example.ecojourney.ui.progressbar.StickProgressBar
 import com.example.ecojourney.ui.theme.PJakartaFontFamily
 import com.example.ecojourney.ui.theme.PJakartaSansFontFamily
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
 import java.util.Locale
 import java.time.format.TextStyle as DateFormatTextStyle
 
@@ -67,67 +74,88 @@ suspend fun fetchCarbonFootprintResult(userId: String): Float {
     return documentSnapshot.getDouble("carbonFootprintResult")?.toFloat() ?: 0f
 }
 
-@Composable
-fun HomeDetail(navController: NavHostController,  userId: String) {
+suspend fun fetchVehicleHistory(userId: String): List<Map<String, Any>> {
+    val db = FirebaseFirestore.getInstance()
+    val documentSnapshot = db.collection("users").document(userId).get().await()
+    return documentSnapshot.get("vehicleHistory") as? List<Map<String, Any>> ?: emptyList()
+}
 
+suspend fun fetchDailyCarbonFootprint(userId: String, date: String): Float {
+    val db = FirebaseFirestore.getInstance()
+    val documentSnapshot = db.collection("users").document(userId).get().await()
+    val carbonFootprint = documentSnapshot.getDouble("carbonFootprint.daily.$date")?.toFloat() ?: 0f
+    return carbonFootprint
+}
+
+suspend fun fetchMonthlyCarbonFootprint(userId: String, month: String): Float {
+    val db = FirebaseFirestore.getInstance()
+    val documentSnapshot = db.collection("users").document(userId).get().await()
+    val carbonFootprint = documentSnapshot.getDouble("carbonFootprint.monthly.$month")?.toFloat() ?: 0f
+    return carbonFootprint
+}
+
+@Composable
+fun HomeDetail(navController: NavHostController, userId: String) {
     val selectedTabIndex = remember { mutableStateOf(0) }
+    var vehicleHistory by remember { mutableStateOf<List<Map<String, Any>>>(emptyList()) }
+    var totalCarbonFootprint by remember { mutableStateOf<Float?>(null) }
+    val coroutineScope = rememberCoroutineScope()
+
+    LaunchedEffect(Unit) {
+        coroutineScope.launch {
+            vehicleHistory = fetchVehicleHistory(userId)
+            totalCarbonFootprint = fetchCarbonFootprintResult(userId)
+        }
+    }
 
     Surface(
-        color = Color.White,
+        color = colorResource(id = R.color.white1100),
         modifier = Modifier.fillMaxSize()
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
-            // Image dengan aspect ratio
             Image(
                 painter = painterResource(id = R.drawable.header_img),
                 contentDescription = null,
                 modifier = Modifier
-                    .fillMaxWidth() // Mengisi lebar
-                    .aspectRatio(16f / 5.65f) // Mengatur rasio aspek tinggi
-                    .align(Alignment.TopCenter) // Mengatur posisi gambar di atas tengah
+                    .fillMaxWidth()
+                    .aspectRatio(16f / 5.65f)
+                    .align(Alignment.TopCenter)
             )
-
-            // Konten overlay dengan teks dan tombol kembali
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(start = 30.dp, top = 40.dp), // Sesuaikan padding sesuai kebutuhan
-                contentAlignment = Alignment.TopStart // Mengatur konten di tengah atas
+                    .padding(start = 30.dp, top = 40.dp),
+                contentAlignment = Alignment.TopStart
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Start // Mengatur Row di sebelah kiri secara horizontal
+                    horizontalArrangement = Arrangement.Start
                 ) {
-                    // Tombol Bulat
                     IconButton(
-                        onClick = {
-                            navController.popBackStack() // Navigasi kembali ke layar sebelumnya (Home)
-                        },
+                        onClick = { navController.popBackStack() },
                         modifier = Modifier
-                            .size(48.dp) // Ukuran tombol
-                            .padding(end = 0.dp), // Jarak antara tombol dan teks
+                            .size(48.dp)
+                            .padding(end = 0.dp),
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(32.dp) // Ukuran tombol
+                                .size(32.dp)
                                 .background(Color.White, shape = CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                painter = painterResource(id = R.drawable.back_arrow), // Ganti dengan sumber ikon Anda
+                                painter = painterResource(id = R.drawable.back_arrow),
                                 contentDescription = "Kembali",
-                                tint = Color(0xFF3F6B1B) // Mengatur warna ikon
+                                tint = Color(0xFF3F6B1B)
                             )
                         }
                     }
                 }
             }
-
-            // Teks di tengah dan tabs di bawahnya
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(top = 50.dp) // Sesuaikan padding sesuai kebutuhan
+                    .padding(top = 50.dp)
                     .padding(horizontal = 20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
@@ -140,21 +168,18 @@ fun HomeDetail(navController: NavHostController,  userId: String) {
                         fontWeight = FontWeight.Bold,
                     )
                 )
-
-                Spacer(modifier = Modifier.height(60.dp)) // Jarak antara teks dan tabs
-
+                Spacer(modifier = Modifier.height(60.dp))
                 ClickableTabs(
                     selectedItem = selectedTabIndex.value,
-                    tabsList = listOf("Harian", "Bulanan"), // Replace with actual tab items
+                    tabsList = listOf("Harian", "Bulanan"),
                     onClick = { index ->
-                        selectedTabIndex.value = index // Update the selected index
+                        selectedTabIndex.value = index
                     },
                     modifier = Modifier.fillMaxWidth()
                 )
                 when (selectedTabIndex.value) {
-                    0 -> HarianContent(userId = userId)
-                    1 -> BulananContent(userId = userId)
-
+                    0 -> HarianContent(userId = userId, vehicleHistory = vehicleHistory, totalCarbonFootprint = totalCarbonFootprint)
+                    1 -> BulananContent(userId = userId, vehicleHistory = vehicleHistory, totalCarbonFootprint = totalCarbonFootprint)
                 }
             }
         }
@@ -162,44 +187,44 @@ fun HomeDetail(navController: NavHostController,  userId: String) {
 }
 
 @Composable
-fun HarianContent(userId: String) {
-    val totalDays = 14 // Number of days to display
-
+fun HarianContent(userId: String, vehicleHistory: List<Map<String, Any>>, totalCarbonFootprint: Float?) {
+    val totalDays = 14
     val currentDate = LocalDate.now()
     val currentDayOfMonth = currentDate.dayOfMonth
     val currentMonth = currentDate.month.getDisplayName(DateFormatTextStyle.FULL, Locale("id", "ID"))
     val currentYear = currentDate.year
-
-    // Generate a list of dates with the current date at the end
-    val startDate = currentDate.minusDays(totalDays.toLong() - 1) // The earliest date to show
+    val startDate = currentDate.minusDays(totalDays.toLong() - 1)
     val days = (0 until totalDays).map { startDate.plusDays(it.toLong()) }
-
     var selectedDay by remember { mutableStateOf(currentDayOfMonth) }
     var displayDate by remember { mutableStateOf("$currentDayOfMonth $currentMonth $currentYear") }
-    var carbonFootprintResult by remember { mutableStateOf<Float?>(null) }
-
-    val coroutineScope = rememberCoroutineScope()
     val listState = rememberLazyListState()
 
-    LaunchedEffect(Unit) {
-        coroutineScope.launch {
-            try {
-                carbonFootprintResult = fetchCarbonFootprintResult(userId)
-            } catch (e: Exception) {
-                carbonFootprintResult = 0f
-            }
-
-            // Find the index of the current date and scroll to it
-            val currentDateIndex = days.indexOfFirst { it.dayOfMonth == currentDayOfMonth }
-            if (currentDateIndex != -1) {
-                listState.scrollToItem(currentDateIndex)
-            }
-        }
+    val selectedDateStr = days.find { it.dayOfMonth == selectedDay }?.toString() ?: ""
+    val filteredHistory = vehicleHistory.filter {
+        val timestamp = (it["timestamp"] as? Long) ?: 0L
+        val entryDate = LocalDateTime.ofEpochSecond(timestamp / 1000, 0, ZoneOffset.UTC).toLocalDate().toString()
+        entryDate == selectedDateStr
     }
 
+    // Group by vehicle type and calculate total carbon footprint for each vehicle type
+    val groupedVehicles = filteredHistory.groupBy { it["vehicleType"] as? String ?: "" }
+        .mapValues { (_, entries) ->
+            val totalCarbon = entries.sumOf {
+                ((it["carbonFootprint"] as? Number)?.toFloat() ?: 0f).toDouble()
+            }.toFloat()
+            val latestEntry = entries.lastOrNull()
+            mapOf(
+                "vehicleType" to (latestEntry?.get("vehicleType") ?: ""),
+                "distance" to (latestEntry?.get("distance") ?: ""),
+                "capacity" to (latestEntry?.get("capacity") ?: ""),
+                "speed" to (latestEntry?.get("speed") ?: ""),
+                "carbonFootprint" to totalCarbon,
+                "entryCount" to entries.size
+            )
+        }
+
     Column(
-        modifier = Modifier
-            .fillMaxSize()
+        modifier = Modifier.fillMaxSize()
     ) {
         Text(
             text = "Hari ini,",
@@ -213,7 +238,6 @@ fun HarianContent(userId: String) {
                 .padding(top = 20.dp)
                 .align(Alignment.Start)
         )
-
         Text(
             text = displayDate,
             fontSize = 20.sp,
@@ -221,19 +245,16 @@ fun HarianContent(userId: String) {
             color = Color(0xFF3F6B1B),
             fontWeight = FontWeight.Bold,
             lineHeight = 24.sp,
-            modifier = Modifier
-                .align(Alignment.Start)
+            modifier = Modifier.align(Alignment.Start)
         )
-
         Spacer(modifier = Modifier.height(20.dp))
-
         LazyRow(
-            state = listState, // Attach the state to LazyRow
+            state = listState,
             modifier = Modifier
                 .fillMaxWidth()
                 .wrapContentHeight()
                 .padding(vertical = 8.dp),
-            horizontalArrangement = Arrangement.End // Ensure cards are arranged from right to left
+            horizontalArrangement = Arrangement.End
         ) {
             items(days) { date ->
                 DayCard(
@@ -248,9 +269,7 @@ fun HarianContent(userId: String) {
                 Spacer(modifier = Modifier.width(22.dp))
             }
         }
-
         Spacer(modifier = Modifier.height(16.dp))
-
         Text(
             text = "Jejak Karbonmu!",
             fontSize = 16.sp,
@@ -260,22 +279,20 @@ fun HarianContent(userId: String) {
             lineHeight = 24.sp,
             letterSpacing = 0.5.sp
         )
-
         Spacer(modifier = Modifier.height(8.dp))
-
         Text(
             text = buildAnnotatedString {
                 withStyle(style = SpanStyle(color = Color.Black)) {
                     append("Kamu sudah menghasilkan karbon sebanyak ")
                 }
                 withStyle(style = SpanStyle(color = Color(0xFFFFBA00))) {
-                    append("${carbonFootprintResult?.let { "%.2f".format(it) } ?: "..."}/ ")
+                    append("${totalCarbonFootprint?.let { "%.2f".format(it) } ?: "0.00"} kg ")
                 }
                 withStyle(style = SpanStyle(color = Color(0xFF3F6B1B))) {
-                    append("26 kg")
+                    append("/ 26.00 kg")
                 }
                 withStyle(style = SpanStyle(color = Color.Black)) {
-                    append(" hari ini!")
+                    append(" total!")
                 }
             },
             fontSize = 14.sp,
@@ -285,49 +302,78 @@ fun HarianContent(userId: String) {
             letterSpacing = 0.25.sp
         )
         Spacer(modifier = Modifier.height(16.dp))
-
         StickProgressBar(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 12.dp),
-            currentValue = carbonFootprintResult ?: 0f,
+            currentValue = totalCarbonFootprint ?: 0f,
+            maxValue = 26f,
             iconHeight = 25.dp
         )
+        Spacer(modifier = Modifier.height(16.dp))
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp)
+        ) {
+            items(groupedVehicles.entries.toList()) { (vehicleType, vehicleData) ->
+                VehicleCard(
+                    vehicleType = vehicleType,
+                    distance = vehicleData["distance"] as? String ?: "",
+                    capacity = vehicleData["capacity"] as? String ?: "",
+                    speed = vehicleData["speed"] as? String ?: "",
+                    carbonFootprint = vehicleData["carbonFootprint"] as? Float ?: 0f,
+                    entryCount = vehicleData["entryCount"] as? Int ?: 0
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+        }
     }
 }
 
-
 @Composable
-fun BulananContent(userId: String) {
+fun BulananContent(userId: String, vehicleHistory: List<Map<String, Any>>, totalCarbonFootprint: Float?) {
     val months = listOf(
         "Jan", "Feb", "Mar", "Apr", "Mei", "Jun",
         "Jul", "Agu", "Sep", "Okt", "Nov", "Des"
     )
-
     val currentDate = LocalDate.now()
     val currentMonthIndex = currentDate.monthValue - 1
     val currentYear = currentDate.year
-
     var selectedMonth by remember { mutableStateOf(currentMonthIndex) }
     var displayMonth by remember { mutableStateOf("${months[currentMonthIndex]} $currentYear") }
-    var carbonFootprintResult by remember { mutableStateOf<Float?>(null) }
-
-    val coroutineScope = rememberCoroutineScope()
+    val listState = rememberLazyListState()
 
     LaunchedEffect(Unit) {
-        coroutineScope.launch {
-            try {
-                carbonFootprintResult = fetchCarbonFootprintResult(userId)
-            } catch (e: Exception) {
-                // Handle the error
-                carbonFootprintResult = 0f
-            }
-        }
+        listState.scrollToItem(currentMonthIndex)
     }
 
+    val selectedMonthStr = "${currentYear}-${String.format("%02d", selectedMonth + 1)}"
+    val filteredHistory = vehicleHistory.filter {
+        val timestamp = (it["timestamp"] as? Long) ?: 0L
+        val entryMonth = LocalDateTime.ofEpochSecond(timestamp / 1000, 0, ZoneOffset.UTC).toLocalDate().format(DateTimeFormatter.ofPattern("yyyy-MM"))
+        entryMonth == selectedMonthStr
+    }
+
+    // Group by vehicle type and calculate total carbon footprint for each vehicle type
+    val groupedVehicles = filteredHistory.groupBy { it["vehicleType"] as? String ?: "" }
+        .mapValues { (_, entries) ->
+            val totalCarbon = entries.sumOf {
+                ((it["carbonFootprint"] as? Number)?.toFloat() ?: 0f).toDouble()
+            }.toFloat()
+            val latestEntry = entries.lastOrNull()
+            mapOf(
+                "vehicleType" to (latestEntry?.get("vehicleType") ?: ""),
+                "distance" to (latestEntry?.get("distance") ?: ""),
+                "capacity" to (latestEntry?.get("capacity") ?: ""),
+                "speed" to (latestEntry?.get("speed") ?: ""),
+                "carbonFootprint" to totalCarbon,
+                "entryCount" to entries.size
+            )
+        }
+
     Column(
-        modifier = Modifier
-            .fillMaxSize()
+        modifier = Modifier.fillMaxSize()
     ) {
         Text(
             text = "Bulan ini,",
@@ -340,7 +386,6 @@ fun BulananContent(userId: String) {
                 .padding(top = 20.dp)
                 .align(Alignment.Start)
         )
-
         Text(
             text = displayMonth,
             fontSize = 20.sp,
@@ -348,13 +393,11 @@ fun BulananContent(userId: String) {
             color = Color(0xFF3F6B1B),
             fontWeight = FontWeight.Bold,
             lineHeight = 24.sp,
-            modifier = Modifier
-                .align(Alignment.Start)
+            modifier = Modifier.align(Alignment.Start)
         )
-
         Spacer(modifier = Modifier.height(20.dp))
-
         LazyRow(
+            state = listState,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(100.dp)
@@ -373,7 +416,6 @@ fun BulananContent(userId: String) {
             }
         }
         Spacer(modifier = Modifier.height(16.dp))
-
         Text(
             text = "Jejak Karbonmu!",
             fontSize = 16.sp,
@@ -383,22 +425,20 @@ fun BulananContent(userId: String) {
             lineHeight = 24.sp,
             letterSpacing = 0.5.sp
         )
-
         Spacer(modifier = Modifier.height(8.dp))
-
         Text(
             text = buildAnnotatedString {
                 withStyle(style = SpanStyle(color = Color.Black)) {
                     append("Kamu sudah menghasilkan karbon sebanyak ")
                 }
                 withStyle(style = SpanStyle(color = Color(0xFFFFBA00))) {
-                    append("${carbonFootprintResult?.let { "%.2f".format(it) } ?: "..."}/ ")
+                    append("${totalCarbonFootprint?.let { "%.2f".format(it) } ?: "0.00"} kg ")
                 }
                 withStyle(style = SpanStyle(color = Color(0xFF3F6B1B))) {
-                    append("780 kg")
+                    append("/ 780.00 kg")
                 }
                 withStyle(style = SpanStyle(color = Color.Black)) {
-                    append(" bulan ini!")
+                    append(" total!")
                 }
             },
             fontSize = 14.sp,
@@ -408,21 +448,124 @@ fun BulananContent(userId: String) {
             letterSpacing = 0.25.sp
         )
         Spacer(modifier = Modifier.height(16.dp))
-
         StickProgressBar(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 12.dp),
-            currentValue = carbonFootprintResult ?: 0f,
+            currentValue = totalCarbonFootprint ?: 0f,
             maxValue = 780f,
             iconHeight = 25.dp
         )
+        Spacer(modifier = Modifier.height(16.dp))
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp)
+        ) {
+            items(groupedVehicles.entries.toList()) { (vehicleType, vehicleData) ->
+                VehicleCard(
+                    vehicleType = vehicleType,
+                    distance = vehicleData["distance"] as? String ?: "",
+                    capacity = vehicleData["capacity"] as? String ?: "",
+                    speed = vehicleData["speed"] as? String ?: "",
+                    carbonFootprint = vehicleData["carbonFootprint"] as? Float ?: 0f,
+                    entryCount = vehicleData["entryCount"] as? Int ?: 0
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+        }
     }
 }
 
-// Helper function to cycle through days of the week
-fun List<String>.cycle(): List<String> {
-    return (this + this).take(31) // Repeat the list to cover all days
+@Composable
+fun VehicleCard(
+    vehicleType: String,
+    distance: String,
+    capacity: String,
+    speed: String,
+    carbonFootprint: Float,
+    entryCount: Int = 1
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(90.dp)
+            .shadow(
+                elevation = 8.dp,
+                shape = RoundedCornerShape(16.dp)
+            ),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .background(Color(0xFFFFBA00), shape = CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Image(
+                    painter = painterResource(id = when (vehicleType.lowercase()) {
+                        "motor" -> R.drawable.scooter
+                        "mobil" -> R.drawable.car
+                        "truk" -> R.drawable.truck
+                        else -> R.drawable.scooter
+                    }),
+                    contentDescription = "$vehicleType icon",
+                    modifier = Modifier.size(52.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(16.dp))
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = vehicleType.replaceFirstChar { it.uppercase() },
+                    fontSize = 16.sp,
+                    fontFamily = PJakartaFontFamily,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF3F6B1B)
+                )
+                Text(
+                    text = "$capacity cc / $distance km",
+                    fontSize = 10.sp,
+                    fontFamily = PJakartaSansFontFamily,
+                    fontWeight = FontWeight.Medium,
+                    fontStyle = FontStyle.Italic,
+                    color = Color.Black
+                )
+                Text(
+                    text = "$speed km/jam",
+                    fontSize = 10.sp,
+                    fontFamily = PJakartaSansFontFamily,
+                    fontWeight = FontWeight.Medium,
+                    fontStyle = FontStyle.Italic,
+                    color = Color.Black
+                )
+                if (entryCount > 1) {
+                    Text(
+                        text = "$entryCount perhitungan",
+                        fontSize = 8.sp,
+                        fontFamily = PJakartaSansFontFamily,
+                        fontWeight = FontWeight.Normal,
+                        color = Color(0xFF666666)
+                    )
+                }
+            }
+            Text(
+                text = "%.2f kg".format(carbonFootprint),
+                fontSize = 16.sp,
+                fontFamily = PJakartaFontFamily,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFFFFBA00)
+            )
+        }
+    }
 }
 
 @Composable
@@ -439,7 +582,7 @@ fun DayCard(day: Int, dayOfWeek: String, isSelected: Boolean, onClick: () -> Uni
             ),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color.Transparent // Set to transparent to apply gradient background
+            containerColor = Color.Transparent
         ),
         elevation = CardDefaults.cardElevation(8.dp)
     ) {
@@ -466,7 +609,7 @@ fun DayCard(day: Int, dayOfWeek: String, isSelected: Boolean, onClick: () -> Uni
                 verticalArrangement = Arrangement.Center
             ) {
                 Text(
-                    text = dayOfWeek.take(3), // Only take the first 3 characters
+                    text = dayOfWeek.take(3),
                     fontSize = 14.sp,
                     fontFamily = PJakartaFontFamily,
                     fontWeight = FontWeight.Bold,
@@ -501,7 +644,7 @@ fun MonthCard(monthIndex: Int, monthName: String, isSelected: Boolean, onClick: 
             ),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color.Transparent // Set to transparent to apply gradient background
+            containerColor = Color.Transparent
         ),
         elevation = CardDefaults.cardElevation(8.dp)
     ) {
@@ -554,24 +697,17 @@ fun MonthCard(monthIndex: Int, monthName: String, isSelected: Boolean, onClick: 
 @Composable
 fun HomeDetailPreview() {
     val navController = rememberNavController()
-    // Provide a dummy userId
     HomeDetail(navController = navController, userId = "dummyUserId")
 }
 
 @Preview(showBackground = true, name = "Harian Content Preview", widthDp = 360, heightDp = 780)
 @Composable
 fun HarianContentPreview() {
-    // Provide a dummy userId
-    HarianContent(userId = "dummyUserId")
+    HarianContent(userId = "dummyUserId", vehicleHistory = emptyList(), totalCarbonFootprint = 0f)
 }
 
 @Preview(showBackground = true, name = "Bulanan Content Preview", widthDp = 360, heightDp = 780)
 @Composable
 fun BulananContentPreview() {
-    BulananContent(userId = "dummyUserId")
+    BulananContent(userId = "dummyUserId", vehicleHistory = emptyList(), totalCarbonFootprint = 0f)
 }
-
-
-
-
-

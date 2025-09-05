@@ -1,42 +1,54 @@
 package com.example.ecojourney
 
 import android.app.Activity
-import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.compose.setContent
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.platform.LocalView
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.ecojourney.menuprofile.AboutScreen
-import com.example.ecojourney.menuprofile.SecurityScreen
-import com.example.ecojourney.menuprofile.SettingsScreen
-import com.example.ecojourney.onboard.OnboardingScreen
+import androidx.navigation.navArgument
+import com.example.ecojourney.screens.profile.AboutScreen
+import com.example.ecojourney.screens.profile.SecurityScreen
+import com.example.ecojourney.screens.profile.SettingsScreen
+import com.example.ecojourney.screens.OnboardingScreen
+import com.example.ecojourney.screens.Donate
+import com.example.ecojourney.screens.DonateDetail
+import com.example.ecojourney.screens.Education
+import com.example.ecojourney.screens.EducationDetailScreen
 import com.example.ecojourney.screens.HomeDetail
-import com.example.ecojourney.screens.ProfileDetail
+import com.example.ecojourney.screens.NewsDetail
+import com.example.ecojourney.screens.profile.ProfileDetail
 import com.example.ecojourney.ui.theme.EcoJourneyTheme
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
-import com.google.android.gms.tasks.Task
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.graphics.toArgb
+import androidx.core.view.WindowCompat
+import com.example.ecojourney.screens.LoginScreen
+import com.example.ecojourney.screens.MainScreen
+import com.example.ecojourney.screens.ResetPassword
+import com.example.ecojourney.screens.SignupScreen
 
 class MainActivity : ComponentActivity() {
     private lateinit var googleSignInClient: GoogleSignInClient
@@ -58,6 +70,9 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
+
+
         val splashScreen = installSplashScreen()
 
         // Keep splash screen visible for a longer time
@@ -78,8 +93,9 @@ class MainActivity : ComponentActivity() {
 
         // Set the content first
         setContent {
-            EcoJourneyTheme {
+            EcoJourneyTheme(darkTheme = false) {
                 navController = rememberNavController()
+                SetStatusBarColor()
                 NavigationView(navController)
             }
         }
@@ -94,6 +110,21 @@ class MainActivity : ComponentActivity() {
                 navController.navigate("main") {
                     popUpTo("onboarding") { inclusive = true }
                 }
+            }
+        }
+    }
+
+    @Composable
+    fun SetStatusBarColor(
+        statusBarColor: Color = Color(0xFF3F6B1B),
+        darkIcons: Boolean = true
+    ) {
+        val view = LocalView.current
+        if (!view.isInEditMode) {
+            SideEffect {
+                val window = (view.context as Activity).window
+                window.statusBarColor = statusBarColor.toArgb()
+                WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = darkIcons
             }
         }
     }
@@ -137,10 +168,52 @@ class MainActivity : ComponentActivity() {
                     userId = userId
                 )
             }
+            composable(
+                route = "video_detail/{videoId}/{videoTitle}?videoDescription={videoDescription}&channelTitle={channelTitle}",
+                arguments = listOf(
+                    navArgument("videoId") { type = NavType.StringType },
+                    navArgument("videoTitle") { type = NavType.StringType },
+                    navArgument("videoDescription") {
+                        type = NavType.StringType
+                        defaultValue = ""
+                    },
+                    navArgument("channelTitle") {
+                        type = NavType.StringType
+                        defaultValue = ""
+                    }
+                )
+            ) { backStackEntry ->
+                val videoId = backStackEntry.arguments?.getString("videoId") ?: ""
+                val videoTitle = backStackEntry.arguments?.getString("videoTitle") ?: ""
+                val videoDescription = backStackEntry.arguments?.getString("videoDescription") ?: ""
+                val channelTitle = backStackEntry.arguments?.getString("channelTitle") ?: ""
+
+                EducationDetailScreen(
+                    navController = navController,
+                    videoId = videoId,
+                    videoTitle = videoTitle,
+                    videoDescription = videoDescription,
+                    channelTitle = channelTitle
+                )
+            }
+            composable(
+                route = "news_detail/{encodedArticle}",
+                arguments = listOf(
+                    navArgument("encodedArticle") { type = NavType.StringType }
+                )
+            ) { backStackEntry ->
+                NewsDetail(
+                    navController = navController,
+                    encodedArticle = backStackEntry.arguments?.getString("encodedArticle")
+                )
+            }
             composable("settings") { SettingsScreen(navController) }
             composable("security") { SecurityScreen(navController) }
             composable("about") { AboutScreen(navController) }
             composable("profile_detail") { ProfileDetail(navController) }
+            composable("donate") { Donate(navController) }
+            composable("donate_detail") { DonateDetail(navController) }
+            composable("education") { Education(navController) }
         }
     }
 
